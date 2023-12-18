@@ -61,7 +61,7 @@ If you wish to use, modify, or distribute this code, please seek permission from
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 # Contact
-For any inquiries, permissions, or discussions related to MyAwesomeProject, feel free to reach out to me.
+For any inquiries, permissions, or discussions related to RFID-Link-Mifare, feel free to reach out to me.
 
 
 © Keng Hzou - Apecia
