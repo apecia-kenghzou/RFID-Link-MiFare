@@ -1,0 +1,7 @@
+asyncio==3.4.3
+keyboard==0.13.5
+pyserial==3.5
+websockets==10.0
+binascii==1.0.1
+pythonnet==2.5.1
+pyscard

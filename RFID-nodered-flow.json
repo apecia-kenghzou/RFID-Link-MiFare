@@ -1,0 +1,614 @@
+[
+    {
+        "id": "8a5dac8ff364772d",
+        "type": "tab",
+        "label": "Temporary RFID",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "d6b038691e69f265",
+        "type": "websocket in",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "server": "fb971a84dc7178f6",
+        "client": "",
+        "x": 570,
+        "y": 340,
+        "wires": [
+            [
+                "3e68f466d2f0071a",
+                "a78499543265ff0a"
+            ]
+        ]
+    },
+    {
+        "id": "a78499543265ff0a",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "remove session",
+        "func": "//person enter certain area, moving person from area to area\n//payload \n// uhf\n// string type\n//requirements send information of the people\nvar mem_mag_db = flow.get('mem_mag_db')\nvar mem_mag_db_area = flow.get('mem_mag_db_area')\n//init\nconst moment = global.get('moment')\nvar ttl = moment().add(10, 'seconds').valueOf()\n\n//move to chiller\n// check if tag release isit authorized\nif(msg.payload in mem_mag_db){\n    mem_mag_db_area['chiller_area'][msg.payload] = mem_mag_db[msg.payload]\n    mem_mag_db_area['chiller_area'][msg.payload].expires = ttl\n    flow.set('mem_mag_db_area', mem_mag_db_area);\n}else{\n    node.error(mem_mag_db[msg.payload])\n}\n//const unknownArea = Object.fromEntries(\n//    new Map([...Object.entries(mem_mag_db_area['main']), ...Object.entries(mem_mag_db_area['chiller_area'])].filter(([key, value]) => !(key in mem_mag_db_area['main'] && key in mem_mag_db_area['chiller_area'])))\n//);\n\n\nvar keys = Object.keys(mem_mag_db_area['chiller_area']);\nvar unknownArea = {}\nfor (var key in mem_mag_db_area['main']) {\n    if (!keys.includes(key)) {\n        unknownArea[key] = mem_mag_db_area['main'][key];\n    }\n}\n\n// common_area =  main area - chiller_area   aka unkown area\nmsg.payload = { 'chiller_area': mem_mag_db_area['chiller_area'], 'common_area': unknownArea}\ndelete msg._session\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 320,
+        "wires": [
+            [
+                "70b49c11e3191984",
+                "7a7f7decd0993de0"
+            ]
+        ]
+    },
+    {
+        "id": "4a36315028f65ac6",
+        "type": "websocket in",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "server": "8365281a8cfa699d",
+        "client": "",
+        "x": 560,
+        "y": 400,
+        "wires": [
+            [
+                "c371b3f035c496f3",
+                "70ca34b840664fd9",
+                "9baa1b0d80364961"
+            ]
+        ]
+    },
+    {
+        "id": "094e74b36bfa2165",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "remove session",
+        "func": "delete msg._session\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 760,
+        "y": 380,
+        "wires": [
+            [
+                "ee04793c92c97bc7"
+            ]
+        ]
+    },
+    {
+        "id": "ee04793c92c97bc7",
+        "type": "websocket out",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "server": "804867088e968356",
+        "client": "",
+        "x": 1220,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "70b49c11e3191984",
+        "type": "websocket out",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "server": "cc8305cb01f8d175",
+        "client": "",
+        "x": 1020,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "3e68f466d2f0071a",
+        "type": "debug",
+        "z": "8a5dac8ff364772d",
+        "name": "debug 75",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 740,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "c371b3f035c496f3",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 289",
+        "func": "//person entered building aka regster\n//payload \n// {nfc:uhf}\n//{user id : cloth id}\n// register object into database\nconst moment = global.get('moment')\nvar ttl = moment().add(10,'seconds').valueOf()\nvar mem_mag_db = flow.get('mem_mag_db')\nvar mem_mag_db_area = flow.get('mem_mag_db_area')\n//init\nmsg.payload = JSON.parse(msg.payload)\nif(mem_mag_db ===undefined){\n    mem_mag_db = {}\n}\nif (mem_mag_db_area === undefined) {\n    mem_mag_db_area = { 'chiller_area': {},'main':{}};\n}\n\n\n//register user into db \nfor (var key in msg.payload){\n    mem_mag_db[key] = { user: msg.payload[key], expires: ttl}\n    //need check location before moving, else collide\n\n    mem_mag_db_area['main'][key] = mem_mag_db[key]\n}\n\nflow.set('mem_mag_db',mem_mag_db);\nflow.set('mem_mag_db_area', mem_mag_db_area);\n\n\ndelete msg._session\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 480,
+        "wires": [
+            [
+                "fe3ef3a40ab034b4"
+            ]
+        ]
+    },
+    {
+        "id": "c618d0aafa5f4732",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 580,
+        "y": 560,
+        "wires": [
+            [
+                "0c193e0c335ffa72"
+            ]
+        ]
+    },
+    {
+        "id": "0c193e0c335ffa72",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 291",
+        "func": "//person entered building aka regster\n//payload \n// {nfc:uhf}\n//{user id : cloth id}\n// register object into database\n\nvar mem_mag_db_area = flow.get('mem_mag_db_area')\n//init\n\nif (mem_mag_db_area === undefined) {\n    mem_mag_db_area = { 'chiller_area': {},'main':{}};\n}\n\n\nmem_mag_db_area['chiller_area']={}\n//var keys = Object.keys(mem_mag_db_area['chiller_area']);\n//var unknownArea = {}\n//for (var key in mem_mag_db_area['main']) {\n//    if (!keys.includes(key)) {\n//        unknownArea[key] = mem_mag_db_area['main'][key];\n//    }\n//}\n//node.error(unknownArea)\n//mem_mag_db_area['common_area'] = unknownArea\nflow.set('mem_mag_db_area', mem_mag_db_area);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 560,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "70ca34b840664fd9",
+        "type": "debug",
+        "z": "8a5dac8ff364772d",
+        "name": "debug 77",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "cf4d35b86065ad18",
+        "type": "websocket out",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "server": "8365281a8cfa699d",
+        "client": "",
+        "x": 900,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "9baa1b0d80364961",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 292",
+        "func": "msg.payload=200\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 520,
+        "wires": [
+            [
+                "cf4d35b86065ad18"
+            ]
+        ]
+    },
+    {
+        "id": "46b6d86f132f6775",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 293",
+        "func": "//person entered building aka regster\n//payload \n// {nfc:uhf}\n//{user id : cloth id}\n// register object into database\n\nvar mem_mag_db = flow.get('mem_mag_db')\nvar mem_mag_db_area = flow.get('mem_mag_db_area')\nmsg.payload ={mem_mag_db,mem_mag_db_area}\nnode.error(mem_mag_db['c38b2307316205010f0101e28011700000020ddd57e8cc'])\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 700,
+        "wires": [
+            [
+                "1e206aa164a98ab8"
+            ]
+        ]
+    },
+    {
+        "id": "f96c7b9d82d1f5df",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 550,
+        "y": 700,
+        "wires": [
+            [
+                "46b6d86f132f6775"
+            ]
+        ]
+    },
+    {
+        "id": "1e206aa164a98ab8",
+        "type": "debug",
+        "z": "8a5dac8ff364772d",
+        "name": "debug 78",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 970,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "be0a22ce3d819cec",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 611.765625,
+        "y": 629.75,
+        "wires": [
+            [
+                "7612af17cfa893ac"
+            ]
+        ]
+    },
+    {
+        "id": "7612af17cfa893ac",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 294",
+        "func": "//person entered building aka regster\n//payload \n// {nfc:uhf}\n//{user id : cloth id}\n// register object into database\n\n// var mem_mag_db={ \"0f0101e28011700000020ddd57e8cc\": { \"user\": \"Keng Hzou\", \"expires\": 1702353601159 },\n//  \"0f0101e28011710000020d56d3f0e6\": { \"user\": \"Eugene\", \"expires\": 1702353579629 },\n//   \"0f0101e280117000000219d45ae1f3\": { \"user\": \"Lam YS\", \"expires\": 1702353577582 },\n//    \"0f0101e2000019051002551610e377\": { \"user\": \"Han Yang\", \"expires\": 1702353703928 } }\n// \"0f0101e28011710000020d56d3f0e6\": { \"user\": \"Eugene\", \"expires\": 1702353579629 }, \"0f0101e280117000000219d45ae1f3\": { \"user\": \"Lam YS\", \"expires\": 1702353577582 }, \"0f0101e2000019051002551610e377\": { \"user\": \"Han Yang\", \"expires\": 1702353703928 }\n//flow.set('mem_mag_db', {});\n\nvar mem_mag_db_area = { 'chiller_area': {}, \"main\": { } };\nflow.set('mem_mag_db',{})\nflow.set('mem_mag_db_area', mem_mag_db_area);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 821.765625,
+        "y": 629.75,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "7a7f7decd0993de0",
+        "type": "debug",
+        "z": "8a5dac8ff364772d",
+        "name": "debug 76",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1200,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "f93d840031dfd0f5",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "remove session",
+        "func": "//person enter certain area, moving person from area to area\n//payload \n// uhf\n// string type\n//requirements send information of the people\nvar mem_mag_db = flow.get('mem_mag_db')\nvar mem_mag_db_area = flow.get('mem_mag_db_area')\n//init\nconst moment = global.get('moment')\nvar ttl = moment().valueOf()\n\n//move to chiller\nfor (var key in mem_mag_db_area['chiller_area']) {\n    if (mem_mag_db_area['chiller_area'][key].expires < ttl) {\n        delete mem_mag_db_area['chiller_area'][key]\n    }\n}\n\nvar keys = Object.keys(mem_mag_db_area['chiller_area']);\nvar unknownArea = {}\nfor (var key in mem_mag_db_area['main']) {\n    if (!keys.includes(key)) {\n        unknownArea[key] = mem_mag_db_area['main'][key];\n    }\n}\n\n// common_area =  main area - chiller_area   aka unkown area\nmsg.payload = { 'chiller_area': mem_mag_db_area['chiller_area'], 'common_area': unknownArea}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 940,
+        "y": 260,
+        "wires": [
+            [
+                "70b49c11e3191984",
+                "7a7f7decd0993de0"
+            ]
+        ]
+    },
+    {
+        "id": "8f880ad915252a18",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 910,
+        "y": 200,
+        "wires": [
+            [
+                "f93d840031dfd0f5"
+            ]
+        ]
+    },
+    {
+        "id": "fe3ef3a40ab034b4",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 295",
+        "func": "for (var key in msg.payload){\n    msg.payload = msg.payload[key]}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 460,
+        "wires": [
+            [
+                "ee04793c92c97bc7",
+                "8f695bde87e93932"
+            ]
+        ]
+    },
+    {
+        "id": "8f695bde87e93932",
+        "type": "debug",
+        "z": "8a5dac8ff364772d",
+        "name": "debug 79",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1180,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "27ac1fcbc1575583",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 750,
+        "y": 840,
+        "wires": [
+            [
+                "2468ec3f440c8611"
+            ]
+        ]
+    },
+    {
+        "id": "2468ec3f440c8611",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 297",
+        "func": "var a = flow.get('mem_mag_db')\nvar b = flow.get('mem_mag_db_area')\nmsg.test1 = a['0f0101e2000019051002551610e377']\nmsg.test2 = b.main['0f0101e2000019051002551610e377']\nmsg.test3 = b\nmsg.test4 = '0f0101e2806995000050018295e9e4' in a\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 950,
+        "y": 840,
+        "wires": [
+            [
+                "1e206aa164a98ab8"
+            ]
+        ]
+    },
+    {
+        "id": "73ce03647d49393b",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 410,
+        "y": 540,
+        "wires": [
+            [
+                "406760ab91672382"
+            ]
+        ]
+    },
+    {
+        "id": "406760ab91672382",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 298",
+        "func": "msg.payload = JSON.stringify({'e2000019051002551610e377':'Keng Hzou'})\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 470,
+        "y": 500,
+        "wires": [
+            [
+                "c371b3f035c496f3"
+            ]
+        ]
+    },
+    {
+        "id": "0e3c8ed15bfca232",
+        "type": "function",
+        "z": "8a5dac8ff364772d",
+        "name": "function 299",
+        "func": "msg.payload = 'e2000019051002551610e377'\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 300,
+        "wires": [
+            [
+                "a78499543265ff0a"
+            ]
+        ]
+    },
+    {
+        "id": "254fb2aea490c097",
+        "type": "inject",
+        "z": "8a5dac8ff364772d",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 500,
+        "y": 240,
+        "wires": [
+            [
+                "0e3c8ed15bfca232"
+            ]
+        ]
+    },
+    {
+        "id": "fb971a84dc7178f6",
+        "type": "websocket-listener",
+        "path": "/ws/live",
+        "wholemsg": "false"
+    },
+    {
+        "id": "8365281a8cfa699d",
+        "type": "websocket-listener",
+        "path": "/ws/register",
+        "wholemsg": "false"
+    },
+    {
+        "id": "804867088e968356",
+        "type": "websocket-listener",
+        "path": "/ws/end/register",
+        "wholemsg": "false"
+    },
+    {
+        "id": "cc8305cb01f8d175",
+        "type": "websocket-listener",
+        "path": "/ws/end/live",
+        "wholemsg": "false"
+    }
+]
